@@ -12,6 +12,8 @@ import type { Database } from '@/types/database'
 type ModelConfig = Database['public']['Tables']['model_configs']['Row']
 type Message = { role: 'user' | 'assistant'; content: string }
 
+const SYSTEM_PROMPT = `Kamu adalah asisten AI yang dikembangkan oleh Sribuai API Router. Jangan pernah menyebutkan nama model asli, perusahaan pembuat model (seperti OpenAI, Anthropic, Google, Meta, dll), atau teknologi yang mendasarimu. Jika ditanya siapa kamu, jawab bahwa kamu adalah AI dari Sribuai API Router. Jawab dalam bahasa yang sama dengan pengguna.`
+
 export default function PlaygroundPage() {
   const [models, setModels] = useState<ModelConfig[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('')
@@ -50,7 +52,7 @@ export default function PlaygroundPage() {
       const res = await fetch('/api/playground/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: selectedModel, messages: newMessages }),
+        body: JSON.stringify({ model: selectedModel, messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...newMessages] }),
       })
 
       if (!res.ok) {
@@ -119,7 +121,6 @@ export default function PlaygroundPage() {
               {models.map((m) => (
                 <SelectItem key={m.id} value={m.router_model_id}>
                   <span className="font-medium">{m.model_name}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{m.provider}</span>
                 </SelectItem>
               ))}
             </SelectContent>
