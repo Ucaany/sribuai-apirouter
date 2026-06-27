@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { PlusIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, CheckIcon, XIcon, FlaskConicalIcon, Loader2Icon } from 'lucide-react'
 import type { Database } from '@/types/database'
 
 type ModelConfig = Database['public']['Tables']['model_configs']['Row']
@@ -33,6 +33,25 @@ export default function AdminModelsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [testModel, setTestModel] = useState<ModelConfig | null>(null)
+  const [testOpen, setTestOpen] = useState(false)
+  const [testPrompt, setTestPrompt] = useState('Say "OK" in one word.')
+  const [testResult, setTestResult] = useState<{ success: boolean; content?: string; error?: string; latency?: number } | null>(null)
+  const [testing, setTesting] = useState(false)
+
+  async function handleTest() {
+    if (!testModel) return
+    setTesting(true)
+    setTestResult(null)
+    const res = await fetch('/api/admin/models/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ router_model_id: testModel.router_model_id, prompt: testPrompt }),
+    })
+    const data = await res.json()
+    setTestResult(data)
+    setTesting(false)
+  }
 
   const fetchModels = useCallback(async () => {
     const res = await fetch('/api/admin/models')
@@ -199,18 +218,23 @@ export default function AdminModelsPage() {
                         />
                       </td>
                       <td className="py-3 text-right">
-                        <Dialog open={editOpen && editModel?.id === model.id} onOpenChange={(o) => { setEditOpen(o); if (o) { setEditModel(model); setForm({ model_id: model.model_id, model_name: model.model_name, provider: model.provider, router_model_id: model.router_model_id, context_window: model.context_window, supports_streaming: model.supports_streaming, is_active: model.is_active, sort_order: model.sort_order, description: model.description ?? '' }) } else { setEditModel(null) } }}>
-                          <DialogTrigger render={<Button size="sm" variant="ghost" className="size-8 p-0" />}>
-                            <PencilIcon className="size-3" />
-                          </DialogTrigger>
-                          <DialogContent className="max-w-lg">
-                            <DialogHeader><DialogTitle>Edit {model.model_name}</DialogTitle></DialogHeader>
-                            <ModelForm />
-                            <Button onClick={handleEdit} disabled={saving}>
-                              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                            </Button>
-                          </DialogContent>
-                        </Dialog>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="sm" variant="ghost" className="size-8 p-0" onClick={() => { setTestModel(model); setTestResult(null); setTestPrompt('Say "OK" in one word.'); setTestOpen(true) }}>
+                            <FlaskConicalIcon className="size-3" />
+                          </Button>
+                          <Dialog open={editOpen && editModel?.id === model.id} onOpenChange={(o) => { setEditOpen(o); if (o) { setEditModel(model); setForm({ model_id: model.model_id, model_name: model.model_name, provider: model.provider, router_model_id: model.router_model_id, context_window: model.context_window, supports_streaming: model.supports_streaming, is_active: model.is_active, sort_order: model.sort_order, description: model.description ?? '' }) } else { setEditModel(null) } }}>
+                            <DialogTrigger render={<Button size="sm" variant="ghost" className="size-8 p-0" />}>
+                              <PencilIcon className="size-3" />
+                            </DialogTrigger>
+                            <DialogContent className="max-w-lg">
+                              <DialogHeader><DialogTitle>Edit {model.model_name}</DialogTitle></DialogHeader>
+                              <ModelForm />
+                              <Button onClick={handleEdit} disabled={saving}>
+                                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                              </Button>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -220,6 +244,39 @@ export default function AdminModelsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={testOpen} onOpenChange={(o) => { setTestOpen(o); if (!o) { setTestModel(null); setTestResult(null) } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Test Model: {testModel?.model_name}</DialogTitle></DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label>Router Model ID</Label>
+              <Input value={testModel?.router_model_id ?? ''} disabled />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Prompt</Label>
+              <Input value={testPrompt} onChange={(e) => setTestPrompt(e.target.value)} placeholder='Say "OK" in one word.' />
+            </div>
+            <Button onClick={handleTest} disabled={testing}>
+              {testing ? <><Loader2Icon className="mr-2 size-4 animate-spin" />Testing...</> : <><FlaskConicalIcon className="mr-2 size-4" />Kirim Test</>}
+            </Button>
+            {testResult && (
+              <div className={`rounded-lg border p-4 text-sm ${testResult.success ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+                <div className="flex items-center gap-2 mb-2 font-medium">
+                  {testResult.success ? <CheckIcon className="size-4 text-green-500" /> : <XIcon className="size-4 text-red-500" />}
+                  {testResult.success ? 'Berhasil' : 'Gagal'}
+                  {testResult.latency && <span className="ml-auto text-xs text-muted-foreground">{testResult.latency}ms</span>}
+                </div>
+                {testResult.success ? (
+                  <p className="text-foreground">{testResult.content}</p>
+                ) : (
+                  <p className="text-red-600 dark:text-red-400 font-mono text-xs break-all">{testResult.error}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
