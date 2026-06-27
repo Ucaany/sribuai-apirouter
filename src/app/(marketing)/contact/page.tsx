@@ -1,10 +1,6 @@
-import type { Metadata } from 'next'
-import { MailIcon, MessageCircleIcon, FileTextIcon } from 'lucide-react'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Kontak | Sribuai APIRouter',
-  description: 'Hubungi tim Sribuai APIRouter untuk pertanyaan, dukungan teknis, atau kerja sama.',
-}
+import { MailIcon, MessageCircleIcon, FileTextIcon } from 'lucide-react'
 
 export default function ContactPage() {
   return (
