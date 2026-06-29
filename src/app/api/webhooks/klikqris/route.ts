@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { activatePayment } from '@/lib/subscription'
+import { verifyWebhookSignature } from '@/lib/klikqris'
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
+  
+  const signature = request.headers.get('x-signature') || request.headers.get('signature') || ''
+  if (!verifyWebhookSignature(rawBody, signature)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+  
   let payload: { order_id: string; status: string; paid_at?: string; signature?: string }
 
   try {

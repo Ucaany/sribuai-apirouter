@@ -246,6 +246,27 @@ export type Database = {
         }
         Update: Partial<Database['public']['Tables']['model_configs']['Insert']>
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: 'info' | 'warning' | 'success' | 'error'
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type?: 'info' | 'warning' | 'success' | 'error'
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+      }
     }
     Functions: {
       check_and_use_quota: {

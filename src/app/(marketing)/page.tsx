@@ -78,7 +78,7 @@ export default function HomePage() {
                   <code>
                     <span className="text-zinc-500">$</span>{" "}
                     <span className="text-emerald-400">curl</span>{" "}
-                    <span className="text-zinc-300">https://api.sribuai.my.id/v1/chat/completions</span>
+                    <span className="text-zinc-300">{process.env.NEXT_PUBLIC_API_URL || 'https://api.sribuai.my.id'}/v1/chat/completions</span>
                     {" \\"}{"\n"}
                     {"  "}<span className="text-sky-400">-H</span>{" "}
                     <span className="text-amber-300">&quot;Authorization: Bearer sk-sri-xxxxx&quot;</span>

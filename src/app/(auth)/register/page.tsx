@@ -167,7 +167,17 @@ export default function RegisterPage() {
                 onSuccess={setTurnstileToken}
                 onError={() => { setTurnstileToken(null) }}
                 onExpire={() => { setTurnstileToken(null) }}
-                options={{ theme: 'auto' }}
+                options={{
+                  theme: 'auto',
+                  action: 'register',
+                  cData: typeof window !== 'undefined' ? window.location.hostname : undefined,
+                  responseField: true,
+                  appearance: 'always',
+                  refreshExpired: 'auto',
+                  retry: 'auto',
+                  retryInterval: 2000,
+                  timeoutResponsiveMode: true,
+                }}
               />
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}

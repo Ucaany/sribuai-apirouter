@@ -76,10 +76,18 @@ export async function getTransactionStatus(orderId: string) {
   }
 }
 
+import { createHmac } from 'crypto'
+
 export function verifyWebhookSignature(payload: string, signature: string): boolean {
-  const txSignature = (() => {
-    try { return JSON.parse(payload)?.signature } catch { return null }
-  })()
-  if (!txSignature) return false
-  return txSignature === signature
+  const webhookSecret = process.env.KLIKQRIS_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.warn('[klikqris] KLIKQRIS_WEBHOOK_SECRET not set, skipping signature verification')
+    return true
+  }
+  
+  const expectedSignature = createHmac('sha256', webhookSecret)
+    .update(payload)
+    .digest('hex')
+  
+  return signature === expectedSignature
 }
