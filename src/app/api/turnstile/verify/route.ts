@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       signal: controller.signal,
     })
     clearTimeout(timeoutId)
-  } catch (err) {
+  } catch {
     clearTimeout(timeoutId)
     return NextResponse.json({ success: false, error: 'Verification timeout' }, { status: 408 })
   }

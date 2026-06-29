@@ -1,11 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
 import { NavUser } from "@/components/nav-user";
-import { BellIcon } from "lucide-react";
+import { NotificationBell } from "@/components/notification-bell";
 import { usePathname } from "next/navigation";
 import { navLinks, adminNavGroups, footerNavLinks } from "@/components/app-shared";
 import type { Database } from "@/types/database";
@@ -33,9 +32,7 @@ export function AppHeader({ profile }: { profile?: Profile | null }) {
 				<AppBreadcrumbs page={activeItem} />
 			</div>
 			<div className="flex items-center gap-2 shrink-0">
-				<Button aria-label="Notifications" size="icon" variant="ghost">
-					<BellIcon />
-				</Button>
+				<NotificationBell />
 				<Separator
 					className="h-4 data-[orientation=vertical]:self-center"
 					orientation="vertical"

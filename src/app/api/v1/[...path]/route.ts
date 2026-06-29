@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateApiKey } from '@/lib/api-key'
 import { logUsage } from '@/lib/usage-logger'
-import { checkRateLimit } from '@/lib/rate-limiter'
+import { checkRateLimit, recordFailedAttempt } from '@/lib/rate-limiter'
 
 const NINEROUTER_BASE_URL = process.env.NINEROUTER_BASE_URL || 'http://localhost:20128'
 const NINEROUTER_API_KEY = process.env.NINEROUTER_API_KEY
 if (!NINEROUTER_API_KEY) {
   throw new Error('NINEROUTER_API_KEY environment variable is required')
 }
+
+const API_TIMEOUT_MS = 60000
 
 async function handler(
   request: NextRequest,
@@ -29,9 +31,10 @@ async function handler(
 
   const apiKeyRaw = authHeader.substring(7)
 
-  if (!(await checkRateLimit(clientIp)).allowed) {
+  const rateLimitResult = await checkRateLimit(clientIp, request.headers.get('user-agent') || undefined)
+  if (!rateLimitResult.allowed) {
     return NextResponse.json(
-      { error: { message: 'Too many requests', type: 'rate_limit_error' } },
+      { error: { message: rateLimitResult.reason || 'Too many requests', type: 'rate_limit_error' } },
       { status: 429 }
     )
   }
@@ -40,6 +43,7 @@ async function handler(
   const validation = await validateApiKey(apiKeyRaw, supabase)
 
   if (!validation.valid) {
+    recordFailedAttempt(clientIp)
     return NextResponse.json(
       { error: { message: validation.error, type: 'authentication_error' } },
       { status: 401 }
@@ -112,6 +116,9 @@ async function handler(
   let errorMessage: string | undefined
 
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+
     const upstreamResponse = await fetch(`${NINEROUTER_BASE_URL}/v1/${path}`, {
       method: request.method,
       headers: {
@@ -121,7 +128,10 @@ async function handler(
         'X-User-ID': userId,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     })
+
+    clearTimeout(timeoutId)
 
     statusCode = upstreamResponse.status
 
@@ -199,17 +209,19 @@ async function handler(
     return NextResponse.json(responseData)
 
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Upstream error'
+    const isTimeout = err instanceof Error && err.name === 'AbortError'
+    const message = isTimeout ? 'Request timeout' : (err instanceof Error ? err.message : 'Upstream error')
     await logUsage(supabase, {
       userId, apiKeyId,
       model: requestedModel, provider: '9router', endpoint: `/${path}`,
       promptTokens: 0, completionTokens: 0, totalTokens: 0,
-      statusCode: 502, responseTimeMs: Date.now() - startTime,
+      statusCode: isTimeout ? 504 : 502, responseTimeMs: Date.now() - startTime,
       isStreaming, errorMessage: message, ipAddress: clientIp,
+      userAgent: request.headers.get('user-agent') || undefined,
     })
     return NextResponse.json(
-      { error: { message: 'Gateway error', type: 'server_error' } },
-      { status: 502 }
+      { error: { message: message, type: 'server_error' } },
+      { status: isTimeout ? 504 : 502 }
     )
   }
 }

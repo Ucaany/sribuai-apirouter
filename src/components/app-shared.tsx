@@ -16,6 +16,7 @@ import {
   TagIcon,
   WebhookIcon,
   FlaskConicalIcon,
+  BellIcon,
 } from "lucide-react";
 
 export type SidebarNavItem = {
@@ -137,6 +138,11 @@ export const adminNavGroups: SidebarNavGroup[] = [
         title: "Promo Codes",
         path: "/admin/promos",
         icon: <TagIcon />,
+      },
+      {
+        title: "Notifikasi",
+        path: "/admin/notifications",
+        icon: <BellIcon />,
       },
     ],
   },

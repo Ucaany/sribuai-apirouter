@@ -45,11 +45,11 @@ export default function RegisterPage() {
       const res = await fetch('/api/turnstile/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: turnstileToken }),
+        body: JSON.stringify({ token: turnstileToken, action: 'register' }),
       })
       const data = await res.json()
       if (!data.success) {
-        setError('Verifikasi keamanan gagal. Coba lagi.')
+        setError(data.error || 'Verifikasi keamanan gagal. Coba lagi.')
         turnstileRef.current?.reset()
         setTurnstileToken(null)
         setLoading(false)
@@ -176,7 +176,6 @@ export default function RegisterPage() {
                   refreshExpired: 'auto',
                   retry: 'auto',
                   retryInterval: 2000,
-                  timeoutResponsiveMode: true,
                 }}
               />
             )}
